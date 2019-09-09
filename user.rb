@@ -3,8 +3,10 @@ require_relative 'question'
 require_relative 'reply'
 require_relative 'question_follow'
 require_relative 'question_like'
+require_relative 'model_base'
 
-class User 
+
+class User < ModelBase
   def self.find_by_id(id)
     user_data = QuestionsDatabase.get_first_row(<<-SQL, id: id)
       SELECT
@@ -43,7 +45,28 @@ class User
     { fname: fname, lname: lname }
   end
 
-
+  def save
+    if @id
+      QuestionsDatabase.execute(<<-SQL, attrs.merge({ id: id }))
+        UPDATE
+          users
+        SET
+          fname = :fname, lname = :lname
+        WHERE
+          users.id = :id
+      SQL
+    else
+      QuestionsDatabase.execute(<<-SQL, attrs)
+        INSERT INTO
+          users (fname, lname)
+        VALUES
+          (:fname, :lname)
+      SQL
+      
+      @id = QuestionsDatabase.last_insert_row_id
+    end
+    self
+  end
 
   def authored_questions
     Question.find_by_author_id(id)
@@ -60,7 +83,7 @@ class User
   def liked_questions
     QuestionLike.liked_questions_for_user_id(id)
   end
-  
+
   def average_karma
     QuestionsDatabase.get_first_value(<<-SQL, author_id: self.id)
       SELECT

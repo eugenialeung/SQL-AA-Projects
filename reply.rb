@@ -1,8 +1,10 @@
 require_relative 'questions_database'
 require_relative 'user'
 require_relative 'question'
+require_relative 'model_base'
 
-class Reply
+
+class Reply < ModelBase
     def self.find(id)
         replies_data = QuestionsDatabase.get_first_row(<<-SQL, id: id)
             SELECT
@@ -83,4 +85,31 @@ class Reply
     def child_replies
         Reply.find_by_parent_id(id)
     end
+
+    def save
+        if @id
+            QuestionsDatabase.execute(<<-SQL, attrs.merge({ id: id }))
+                UPDATE
+                    replies
+                SET
+                    question_id = :question_id,
+                    parent_reply_id = :parent_reply_id,
+                    author_id = :author_id,
+                    body = :body
+                WHERE
+                    replies.id = :id
+            SQL
+        else
+            QuestionsDatabase.execute(<<-SQL, attrs)
+                INSERT INTO 
+                    replies (question_id, parent_reply_id, author_id, body)
+                VALUES
+                    (:question_id, :parent_reply_id, :author_id, :body)
+            SQL
+
+            @id = QuestionsDatabase.last_insert_row_id
+        end
+        self
+    end
 end
+

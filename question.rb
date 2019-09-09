@@ -3,8 +3,10 @@ require_relative 'user'
 require_relative 'reply'
 require_relative 'question_follow'
 require_relative 'question_like'
+require_relative 'model_base'
 
-class Question 
+
+class Question < ModelBase
     def self.find(id)
         question_data = QuestionsDatabase.get_first_row(<<-SQL, id: id)
           SELECT
@@ -47,6 +49,33 @@ class Question
         options.values_at('id', 'title', 'body', 'author_id')
     end
 
+    def attrs
+      { title: title, body: body, author_id: author_id }
+    end
+
+    def save
+      if @id
+        QuestionsDatabase.execute(<<-SQL, attrs.merge({ id: id }))
+          UPDATE
+            questions
+          SET
+            titlle = :title, body = :body, author_id = :author_id
+          WHERE
+            questions.id = :id
+        SQL
+      else
+        QuestionsDatabase.execute(<<-SQL, attrs)
+          INSERT INTO
+            questions (title, body, author_id)
+          VALUES
+            (:title, :body, :author_id)
+        SQL
+
+        @id = QuestionsDatabase.last_insert_row_id
+      end
+      self
+    end
+
     def author
       User.find_by_id(author_id)
     end
@@ -66,7 +95,5 @@ class Question
     def num_likes
       QuestionLike.num_likes_for_question_id(id)
     end
-
-
 
 end
