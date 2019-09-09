@@ -1,4 +1,7 @@
 require_relative 'questions_database'
+require_relative 'question'
+require_relative 'user'
+
 
 class QuestionLike
     def self.likers_for_question_id(question_id)
@@ -8,11 +11,11 @@ class QuestionLike
             FROM
                 users
             JOIN
-                question_likes
+                question_like
             ON
-                users.id = question_likes.user_id
+                users.id = question_like.user_id
             WHERE
-                question_likes.question_id = :question_id
+                question_like.question_id = :question_id
         SQL
 
         users_data.map { |user_data| User.new(user_data) }
@@ -27,7 +30,7 @@ class QuestionLike
             JOIN 
                 questions_likes
             ON 
-                questions.id = questions_likes.question_id
+                questions.id = question_like.question_id
             WHERE
                 questions.id = :question_id
         SQL
@@ -40,11 +43,32 @@ class QuestionLike
             FROM 
                 questions
             JOIN
-                question_likes
+                question_like
             ON
-                questions.id = question_likes.question_id
+                questions.id = question_like.question_id
             WHERE
-                question_likes.user_id = :user_id
+                question_like.user_id = :user_id
+        SQL
+
+        questions_data.map { |question_data| Question.new(question_data) }
+    end
+
+    def self.most_liked_questions(n)
+        questions_data = QuestionsDatabase.execute(<<-SQL, limit: n)
+            SELECT
+                questions.*
+            FROM 
+                questions
+            JOIN
+                question_like
+            ON
+                questions.id = question_like.question_id
+            GROUP BY
+                questions.id
+            ORDER BY
+                COUNT(*) DESC
+            LIMIT
+                :limit
         SQL
 
         questions_data.map { |question_data| Question.new(question_data) }

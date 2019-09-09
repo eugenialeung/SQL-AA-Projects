@@ -2,6 +2,7 @@ require_relative 'questions_database'
 require_relative 'user'
 require_relative 'reply'
 require_relative 'question_follow'
+require_relative 'question_like'
 
 class Question 
     def self.find(id)
@@ -30,6 +31,14 @@ class Question
         questions_data.map { |question_data| Question.new(question_data) }
     end
 
+    def most_followed(n)
+      QuestionFollow.most_followed_questions(n)
+    end
+
+    def most_liked(n)
+      Question_like.most_liked_questions(n)
+    end
+
     attr_reader :id
     attr_accessor :title, :body, :author_id
   
@@ -50,8 +59,14 @@ class Question
       QuestionFollow.followers_for_question_id(id)
     end
 
-    def most_followed(n)
-      QuestionFollow.most_followed_questions(n)
+    def likers
+      QuestionLike.likers_for_question_id(id)
     end
+
+    def num_likes
+      QuestionLike.num_likes_for_question_id(id)
+    end
+
+
 
 end
